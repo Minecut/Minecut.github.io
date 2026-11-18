@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>EagleClient · 安全，是此客户端的代名词</title>
+<style>
+  :root{
+    --green:#22d3a5;
+    --green-light:#5ef7b0;
+    --cyan:#38e0c8;
+    --ink:#e8f5ef;
+    --amber:#fbbf24;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;overflow-x:hidden}
+  body{
+    background:#000;
+    color:var(--ink);
+    font-family:"Segoe UI","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .grid-bg{
+    position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-color:#000;
+    background-image:
+      radial-gradient(circle at 50% 38%, rgba(34,211,165,.075), transparent 62%),
+      linear-gradient(rgba(34,211,165,.085) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(34,211,165,.085) 1px, transparent 1px);
+    background-size:auto, 54px 54px, 54px 54px;
+    background-position:center, 0 0, 0 0;
+  }
+  .grid-bg::after{
+    content:"";
+    position:absolute;inset:0;
+    background:radial-gradient(ellipse at 50% 45%, transparent 38%, rgba(0,0,0,.82) 100%);
+  }
+
+  #bg{
+    position:fixed;inset:0;width:100%;height:100%;
+    z-index:1;pointer-events:none;
+  }
+
+  #trail{
+    position:fixed;inset:0;width:100%;height:100%;
+    z-index:3;pointer-events:none;
+  }
+
+  main{position:relative;z-index:2}
+
+  .hero{
+    min-height:100vh;
+    display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+    text-align:center;
+    padding:70px 20px 60px;
+  }
+
+  .ai-notice-top{
+    display:inline-flex;align-items:center;gap:13px;
+    padding:15px 36px;
+    border-radius:15px;
+    border:1.5px solid rgba(251,191,36,.55);
+    background:rgba(251,191,36,.10);
+    color:#fde68a;
+    font-size:clamp(17px,2.3vw,22px);
+    font-weight:800;
+    letter-spacing:.08em;
+    backdrop-filter:blur(8px);
+    margin-bottom:24px;
+    box-shadow:0 0 30px rgba(251,191,36,.15), inset 0 1px 0 rgba(255,255,255,.08);
+    animation:fadeUp .8s ease both, aiPulse 2.8s ease-in-out infinite;
+  }
+  .ai-notice-top .ai-icon{
+    font-family:ui-monospace,Consolas,monospace;
+    font-size:1.05em;
+    font-weight:900;
+    color:var(--amber);
+    text-shadow:0 0 14px rgba(251,191,36,.85);
+    letter-spacing:0;
+  }
+  @keyframes aiPulse{
+    0%,100%{box-shadow:0 0 28px rgba(251,191,36,.14), inset 0 1px 0 rgba(255,255,255,.08)}
+    50%{box-shadow:0 0 48px rgba(251,191,36,.34), inset 0 1px 0 rgba(255,255,255,.10)}
+  }
+
+  .badge{
+    display:inline-flex;align-items:center;gap:9px;
+    padding:8px 20px;border-radius:999px;
+    border:1px solid rgba(34,211,165,.35);
+    background:rgba(34,211,165,.08);
+    color:#7dfcc9;font-size:13.5px;letter-spacing:.12em;
+    backdrop-filter:blur(8px);
+    animation:fadeUp .8s ease both;
+  }
+  .badge .dot{
+    width:7px;height:7px;border-radius:50%;
+    background:var(--green-light);
+    box-shadow:0 0 12px var(--green-light);
+    animation:blink 1.6s ease-in-out infinite;
+  }
+  @keyframes blink{50%{opacity:.25;transform:scale(.7)}}
+
+  .title{
+    margin:26px 0 10px;
+    font-size:clamp(52px,11vw,138px);
+    font-weight:900;line-height:1;letter-spacing:.01em;
+    background:linear-gradient(100deg,#4ade80,#22d3ee,#a78bfa,#4ade80);
+    background-size:300% 100%;
+    -webkit-background-clip:text;background-clip:text;
+    color:transparent;
+    filter:drop-shadow(0 0 42px rgba(34,211,165,.45));
+    animation:shine 7s linear infinite, fadeUp .9s .08s ease both;
+  }
+  @keyframes shine{to{background-position:300% 0}}
+
+  .slogan{
+    margin-top:16px;
+    font-size:clamp(18px,3.1vw,30px);
+    font-weight:700;
+    letter-spacing:.07em;
+    color:#dcfff2;
+    text-shadow:0 0 26px rgba(34,211,165,.55);
+    animation:fadeUp .9s .18s ease both;
+  }
+
+  .intro{
+    margin-top:14px;
+    max-width:760px;
+    font-size:clamp(13.5px,1.7vw,16px);
+    line-height:1.7;
+    letter-spacing:.04em;
+    color:#7fd9bb;
+    animation:fadeUp .9s .22s ease both;
+  }
+  .intro .hl{
+    color:#b9ffe4;
+    font-weight:700;
+  }
+
+  .typer{
+    margin-top:18px;height:26px;
+    font-size:15px;
+    font-family:ui-monospace,Consolas,monospace;
+    color:#6fd8b4;letter-spacing:.06em;
+    animation:fadeUp .9s .26s ease both;
+  }
+  .cursor{
+    display:inline-block;margin-left:2px;
+    color:var(--green-light);
+    animation:blink 1s steps(2) infinite;
+  }
+
+  /* ========== 备用链接按钮 ========== */
+  .backup-wrap{
+    display:flex;
+    justify-content:center;
+    margin-top:52px;
+    animation:fadeUp .9s .30s ease both;
+  }
+  .backup-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:11px;
+    padding:14px 30px;
+    border-radius:14px;
+    font-size:15px;
+    font-weight:800;
+    letter-spacing:.05em;
+    color:#9af0e0;
+    text-decoration:none;
+    background:rgba(56,224,200,.06);
+    border:1.5px dashed rgba(56,224,200,.5);
+    backdrop-filter:blur(8px);
+    transition:transform .25s cubic-bezier(.2,.9,.3,1.5),
+               border-color .28s, box-shadow .28s, color .28s, background .28s;
+  }
+  .backup-btn:hover{
+    transform:translateY(-3px);
+    color:#dcfff8;
+    border-color:rgba(94,247,176,.95);
+    background:rgba(56,224,200,.14);
+    box-shadow:0 12px 32px rgba(56,224,200,.26),
+               inset 0 1px 0 rgba(255,255,255,.08);
+  }
+  .backup-btn:active{transform:translateY(-1px)}
+  .backup-btn .pwd{
+    padding:3px 11px;
+    border-radius:7px;
+    background:rgba(251,191,36,.14);
+    border:1px solid rgba(251,191,36,.4);
+    color:#fde68a;
+    font-size:12.5px;
+    font-weight:800;
+    letter-spacing:.06em;
+    white-space:nowrap;
+  }
+
+  .download-wrap{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:center;
+    gap:22px;
+    margin-top:22px;
+    animation:fadeUp .9s .34s ease both;
+  }
+  .btn-item{
+    position:relative;
+    display:inline-block;
+  }
+
+  .halo{
+    position:absolute;inset:-12px;border-radius:26px;
+    background:linear-gradient(135deg,#5ef7b0,#38e0c8);
+    filter:blur(26px);opacity:.5;z-index:0;
+    animation:pulse 2.6s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{opacity:.35;transform:scale(.96)}
+    50%{opacity:.7;transform:scale(1.05)}
+  }
+
+  .download-btn{
+    position:relative;z-index:1;
+    display:inline-flex;align-items:center;gap:12px;
+    padding:21px 58px;
+    border-radius:18px;
+    font-size:20px;font-weight:800;letter-spacing:.05em;
+    color:#04150e;text-decoration:none;
+    background:linear-gradient(135deg,#5ef7b0,#22d3a5 48%,#38e0c8);
+    box-shadow:
+      0 12px 44px rgba(34,211,165,.42),
+      inset 0 1px 0 rgba(255,255,255,.55);
+    overflow:hidden;
+    transition:transform .25s cubic-bezier(.2,.9,.3,1.5), box-shadow .25s;
+  }
+  .download-btn:hover{
+    transform:translateY(-4px) scale(1.035);
+    box-shadow:
+      0 20px 60px rgba(34,211,165,.62),
+      inset 0 1px 0 rgba(255,255,255,.65);
+  }
+  .download-btn:active{transform:translateY(-1px) scale(.99)}
+  .download-btn::after{
+    content:"";
+    position:absolute;top:0;left:-130%;
+    width:55%;height:100%;
+    background:linear-gradient(100deg,transparent,rgba(255,255,255,.75),transparent);
+    transform:skewX(-22deg);
+    animation:sweep 3.2s ease-in-out infinite;
+  }
+  @keyframes sweep{
+    0%{left:-130%}
+    55%,100%{left:150%}
+  }
+
+  /* GitHub 次按钮 */
+  .github-btn{
+    position:relative;z-index:1;
+    display:inline-flex;align-items:center;gap:11px;
+    padding:20px 40px;
+    border-radius:18px;
+    font-size:18px;font-weight:800;letter-spacing:.04em;
+    color:#bffde8;text-decoration:none;
+    background:rgba(255,255,255,.045);
+    border:1.5px solid rgba(34,211,165,.45);
+    backdrop-filter:blur(10px);
+    box-shadow:
+      0 10px 32px rgba(34,211,165,.14),
+      inset 0 1px 0 rgba(255,255,255,.08);
+    transition:transform .25s cubic-bezier(.2,.9,.3,1.5),
+               border-color .28s, box-shadow .28s, color .28s, background .28s;
+  }
+  .github-btn:hover{
+    transform:translateY(-4px) scale(1.03);
+    color:#eafff7;
+    border-color:rgba(94,247,176,.95);
+    background:rgba(34,211,165,.13);
+    box-shadow:
+      0 18px 48px rgba(34,211,165,.32),
+      0 0 0 1px rgba(94,247,176,.35),
+      inset 0 1px 0 rgba(255,255,255,.14);
+  }
+  .github-btn:active{transform:translateY(-1px) scale(.99)}
+
+  .hint{
+    margin-top:22px;
+    font-size:13.5px;color:#7ea99a;letter-spacing:.08em;
+    animation:fadeUp .9s .42s ease both;
+  }
+
+  @keyframes fadeUp{
+    from{opacity:0;transform:translateY(26px)}
+    to{opacity:1;transform:translateY(0)}
+  }
+
+  /* ========== 特性区 ========== */
+  .features{
+    max-width:1120px;
+    margin:0 auto;
+    padding:40px 24px 110px;
+    text-align:center;
+  }
+  .features h2{
+    font-size:clamp(24px,4vw,38px);
+    font-weight:800;letter-spacing:.04em;
+  }
+  .features h2 span{
+    background:linear-gradient(100deg,#4ade80,#38e0c8);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .features .sub{
+    margin-top:14px;font-size:15px;color:#7ea99a;letter-spacing:.06em;
+  }
+  .cards{
+    margin-top:56px;
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(272px,1fr));
+    gap:22px;
+    text-align:left;
+  }
+  .card{
+    position:relative;
+    padding:30px 26px 32px;
+    border-radius:20px;
+    background:linear-gradient(160deg, rgba(255,255,255,.065), rgba(255,255,255,.015));
+    border:1px solid rgba(255,255,255,.09);
+    backdrop-filter:blur(10px);
+    opacity:0;transform:translateY(34px);
+    transition:opacity .7s ease, transform .7s cubic-bezier(.2,.8,.3,1),
+               border-color .35s, box-shadow .35s, background .35s;
+  }
+  .card.in{opacity:1;transform:translateY(0)}
+  .card:hover{
+    transform:translateY(-8px);
+    border-color:rgba(34,211,165,.6);
+    background:linear-gradient(160deg, rgba(34,211,165,.14), rgba(255,255,255,.02));
+    box-shadow:0 22px 48px rgba(34,211,165,.20);
+  }
+  .card h3{
+    font-size:18px;font-weight:800;letter-spacing:.05em;
+    color:#c8ffe9;margin-bottom:10px;
+  }
+  .card p{
+    font-size:14px;line-height:1.8;color:#8fb6a8;
+  }
+  .card p + p{margin-top:8px}
+
+  /* ========== 跑马灯 ========== */
+  .marquee{
+    position:relative;z-index:2;
+    overflow:hidden;
+    border-top:1px solid rgba(34,211,165,.18);
+    border-bottom:1px solid rgba(34,211,165,.18);
+    background:rgba(34,211,165,.045);
+    padding:16px 0;
+    -webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);
+    mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);
+  }
+  .marquee-track{
+    display:flex;width:max-content;
+    animation:scrollX 26s linear infinite;
+  }
+  .marquee-track span{
+    padding:0 26px;
+    font-size:15px;font-weight:700;letter-spacing:.22em;
+    color:#4fbf9b;white-space:nowrap;
+  }
+  @keyframes scrollX{
+    from{transform:translateX(0)}
+    to{transform:translateX(-50%)}
+  }
+
+  footer{
+    position:relative;z-index:2;
+    text-align:center;
+    padding:38px 22px 48px;
+    font-size:13px;letter-spacing:.06em;
+    line-height:1.9;
+  }
+  footer .copy{
+    color:#7fa89a;
+    font-weight:600;
+  }
+  footer .disclaimer{
+    margin-top:12px;
+    max-width:760px;
+    margin-left:auto;margin-right:auto;
+    font-size:12px;
+    line-height:1.85;
+    color:#4f6f65;
+    letter-spacing:.04em;
+  }
+  footer .disclaimer strong{
+    color:#6b9184;
+    font-weight:700;
+  }
+  /* 底部 AI 生成提示 */
+  footer .ai-notice-bottom{
+    margin-top:16px;
+    display:inline-flex;align-items:center;gap:8px;
+    padding:7px 20px;
+    border-radius:999px;
+    border:1px solid rgba(251,191,36,.30);
+    background:rgba(251,191,36,.06);
+    font-size:12.5px;
+    font-weight:700;
+    letter-spacing:.08em;
+    color:#c6ac6c;
+  }
+  footer .ai-notice-bottom .ai-icon{
+    font-family:ui-monospace,Consolas,monospace;
+    font-weight:900;
+    color:var(--amber);
+    letter-spacing:0;
+  }
+
+  @media (max-width:600px){
+    .hero{padding-top:56px}
+    .ai-notice-top{padding:12px 24px;gap:9px;margin-bottom:20px}
+    .backup-wrap{margin-top:44px}
+    .backup-btn{padding:12px 22px;font-size:14px;gap:9px;flex-wrap:wrap;justify-content:center}
+    .backup-btn .pwd{font-size:12px;padding:2px 9px}
+    .download-wrap{gap:14px;margin-top:20px}
+    .download-btn{padding:17px 34px;font-size:17px}
+    .github-btn{padding:16px 26px;font-size:16px}
+    .card{padding:24px 20px 26px}
+    footer{padding:30px 18px 38px}
+  }
+  @media (max-width:400px){
+    .download-wrap{flex-direction:column;width:100%}
+    .btn-item,.download-btn,.github-btn{width:100%;justify-content:center}
+    .backup-btn{width:100%;justify-content:center}
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.01ms !important;animation-iteration-count:1 !important}
+  }
+</style>
+</head>
+<body>
+
+<div class="grid-bg" aria-hidden="true"></div>
+<canvas id="bg" aria-hidden="true"></canvas>
+
+<main>
+  <!-- ================= 首屏 ================= -->
+  <section class="hero">
+    <!-- 顶部 AI 生成提示（大号） -->
+    <div class="ai-notice-top" role="note">
+      <span class="ai-icon">[!]</span>
+      <span>此客户端为 AI 生成</span>
+    </div>
+
+    <div class="badge"><span class="dot"></span>安全 · 稳定 · 流畅</div>
+
+    <h1 class="title">EagleClient</h1>
+
+    <p class="slogan">安全，是此客户端的代名词</p>
+
+    <p class="intro">
+      一个免费且开源的 <span class="hl">Java 1.21.4 Fabric SafeHack</span> 客户端
+    </p>
+
+    <p class="typer"><span id="typer"></span><span class="cursor">|</span></p>
+
+    <!-- 备用链接（在下载按钮上方） -->
+    <div class="backup-wrap">
+      <a class="backup-btn" href="https://wwasg.lanzouv.com/iCxbx4gc0ocj" target="_blank" rel="noopener">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5"/>
+          <path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5"/>
+        </svg>
+        <span>备用下载</span>
+        <span class="pwd">密码：zjbj</span>
+      </a>
+    </div>
+
+    <div class="download-wrap">
+      <div class="btn-item">
+        <span class="halo" aria-hidden="true"></span>
+        <a class="download-btn" href="https://github.com/Minecut/AssistSimulatingTheClient/releases/download/Mod2/eagle-2.10.0.jar" target="_blank" rel="noopener">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.6"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3v12"/>
+            <path d="m7 11 5 5 5-5"/>
+            <path d="M4 20h16"/>
+          </svg>
+          <span>立即下载</span>
+        </a>
+      </div>
+
+      <!-- GitHub 按钮 -->
+      <div class="btn-item">
+        <a class="github-btn" href="https://github.com/Minecut/AssistSimulatingTheClient" target="_blank" rel="noopener">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 .5C5.73.5.99 5.24.99 11.5c0 4.86 3.15 8.98 7.52 10.44.55.1.75-.24.75-.53
+                     0-.26-.01-1.13-.02-2.05-3.06.67-3.71-1.3-3.71-1.3-.5-1.28-1.22-1.62-1.22-1.62
+                     -.99-.68.08-.66.08-.66 1.1.08 1.68 1.13 1.68 1.13.98 1.68 2.56 1.2 3.19.92
+                     .1-.71.38-1.2.69-1.48-2.44-.28-5.01-1.22-5.01-5.44 0-1.2.43-2.18 1.13-2.95
+                     -.11-.28-.49-1.4.11-2.92 0 0 .92-.29 3.02 1.13a10.5 10.5 0 0 1 2.75-.37c.93 0
+                     1.87.13 2.75.37 2.1-1.42 3.02-1.13 3.02-1.13.6 1.52.22 2.64.11 2.92.7.77
+                     1.13 1.75 1.13 2.95 0 4.23-2.58 5.16-5.03 5.43.4.34.75 1.01.75 2.04
+                     0 1.47-.01 2.66-.01 3.02 0 .3.2.64.76.53A11.01 11.01 0 0 0 23.01 11.5
+                     C23.01 5.24 18.27.5 12 .5z"/>
+          </svg>
+          <span>GitHub</span>
+        </a>
+      </div>
+    </div>
+
+    <p class="hint">| 支持Windows | 开源 | 安全 | 免费 |</p>
+  </section>
+
+  <!-- ================= 特性 ================= -->
+  <section class="features">
+    <h2>为什么选择 <span>EagleClient</span></h2>
+    <p class="sub">我们不追逐花哨，只把「安全」和「流畅」做到极致</p>
+
+    <div class="cards">
+      <article class="card">
+        <h3>绝对安全</h3>
+        <p>无后门、无内存注入、无恶意模块。核心逻辑可审计，不读取任何与游戏无关的个人数据，让每一行代码都经得起检验。</p>
+      </article>
+
+      <article class="card">
+        <h3>降低封号风险</h3>
+        <p>纯外部架构，不触碰游戏内核，不修改任何游戏文件。稳定运行于各类环境，最大限度降低账号封禁的可能性。</p>
+      </article>
+
+      <article class="card">
+        <h3>极致性能</h3>
+        <p>深度优化渲染管线与内存占用，帧率稳定不掉线。</p>
+      </article>
+
+      <article class="card">
+        <h3>精准操控</h3>
+        <p>用户自行操控无自主行为，完全开源无后门，不会对设备造成损害。</p>
+      </article>
+
+      <article class="card">
+        <h3>持续更新</h3>
+        <p>紧跟游戏版本迭代，功能不断打磨。永久免费使用，无需付费订阅。</p>
+        <p>支持版本：Fabric 1.21.4，支持系统：Windows</p>
+      </article>
+    </div>
+  </section>
+</main>
+
+<!-- ================= 跑马灯 ================= -->
+<div class="marquee" aria-hidden="true">
+  <div class="marquee-track">
+    <span>安全 · 稳定 · 流畅 · 无广告 · 零后门 · 免费 · 持续更新 ·</span>
+    <span>安全 · 稳定 · 流畅 · 无广告 · 零后门 · 免费 · 持续更新 ·</span>
+  </div>
+</div>
+
+<footer>
+  <p class="copy">©2026 Zjbj。保留所有权利。</p>
+  <p class="disclaimer">
+    不是官方的 <strong>MINECRAFT</strong> 产品。未经 <strong>MOJANG</strong> 或 <strong>MICROSOFT</strong> 批准或关联，与 <strong>Mojang AB</strong> 无任何关联。
+  </p>
+  <p class="ai-notice-bottom">
+    <span class="ai-icon">[!]</span>
+    <span>此客户端为 AI 生成</span>
+  </p>
+</footer>
+
+<canvas id="trail" aria-hidden="true"></canvas>
+
+<script>
+(function () {
+  const cvs = document.getElementById('bg');
+  const ctx = cvs.getContext('2d');
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+  let W = 0, H = 0;
+  let particles = [];
+
+  function initParticles() {
+    particles = [];
+    const count = Math.min(80, Math.floor(window.innerWidth / 16));
+    for (let i = 0; i < count; i++) {
+      particles.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        s: Math.random() * 3.2 + 1.4,
+        vx: (Math.random() - 0.5) * 0.16,
+        vy: -(Math.random() * 0.34 + 0.07),
+        rot: Math.random() * Math.PI * 2,
+        vr: (Math.random() - 0.5) * 0.022,
+        a: Math.random() * 0.45 + 0.15,
+        c: Math.random() > 0.5 ? '34,211,165' : '56,189,248'
+      });
+    }
+  }
+
+  function resize() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    cvs.width = W * DPR;
+    cvs.height = H * DPR;
+    cvs.style.width = W + 'px';
+    cvs.style.height = H + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    initParticles();
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    for (const p of particles) {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.rot += p.vr;
+
+      if (p.y < -24) { p.y = H + 24; p.x = Math.random() * W; }
+      if (p.x < -24) p.x = W + 24;
+      if (p.x > W + 24) p.x = -24;
+
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle = 'rgba(' + p.c + ',' + p.a + ')';
+      if (p.s > 2.6) {
+        ctx.shadowColor = 'rgba(' + p.c + ',' + (p.a + 0.3) + ')';
+        ctx.shadowBlur = 10;
+      }
+      ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s);
+      ctx.restore();
+    }
+    requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+  draw();
+})();
+
+(function () {
+  const cvs = document.getElementById('trail');
+  const ctx = cvs.getContext('2d');
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+  const MAX = 110;
+  let W = 0, H = 0;
+  const particles = [];
+
+  function resize() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    cvs.width = W * DPR;
+    cvs.height = H * DPR;
+    cvs.style.width = W + 'px';
+    cvs.style.height = H + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+
+  function spawn(x, y) {
+    for (let i = 0; i < 2; i++) {
+      particles.push({
+        x: x + (Math.random() - 0.5) * 12,
+        y: y + (Math.random() - 0.5) * 12,
+        vx: (Math.random() - 0.5) * 0.9,
+        vy: (Math.random() - 0.5) * 0.9,
+        size: Math.random() * 3.6 + 1.8,
+        life: 1,
+        decay: 0.018 + Math.random() * 0.022,
+        c: Math.random() > 0.45 ? '34,211,165' : '94,247,176'
+      });
+    }
+    if (particles.length > MAX) {
+      particles.splice(0, particles.length - MAX);
+    }
+  }
+
+  function loop() {
+    ctx.clearRect(0, 0, W, H);
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vx *= 0.96;
+      p.vy *= 0.96;
+      p.life -= p.decay;
+      if (p.life <= 0) {
+        particles.splice(i, 1);
+        continue;
+      }
+      const s = p.size * p.life;
+      ctx.save();
+      ctx.globalAlpha = p.life * 0.9;
+      ctx.fillStyle = 'rgba(' + p.c + ',1)';
+      ctx.shadowColor = 'rgba(' + p.c + ',0.95)';
+      ctx.shadowBlur = 10;
+      ctx.fillRect(p.x - s / 2, p.y - s / 2, s, s);
+      ctx.restore();
+    }
+    requestAnimationFrame(loop);
+  }
+
+  window.addEventListener('mousemove', function (e) {
+    spawn(e.clientX, e.clientY);
+  }, { passive: true });
+
+  window.addEventListener('touchmove', function (e) {
+    for (let i = 0; i < e.touches.length; i++) {
+      spawn(e.touches[i].clientX, e.touches[i].clientY);
+    }
+  }, { passive: true });
+
+  window.addEventListener('resize', resize);
+  resize();
+  loop();
+})();
+
+(function () {
+  const el = document.getElementById('typer');
+  const phrases = [
+    '零后门 · 零广告 · 零风险',
+    '每一行代码，都经得起审计',
+    '极致流畅，只为你的操作而生'
+  ];
+  let pi = 0, ci = 0, deleting = false;
+
+  function tick() {
+    const cur = phrases[pi];
+    if (!deleting) {
+      ci++;
+      el.textContent = cur.slice(0, ci);
+      if (ci >= cur.length) {
+        deleting = true;
+        return setTimeout(tick, 1900);
+      }
+      setTimeout(tick, 95);
+    } else {
+      ci--;
+      el.textContent = cur.slice(0, ci);
+      if (ci <= 0) {
+        deleting = false;
+        pi = (pi + 1) % phrases.length;
+        return setTimeout(tick, 420);
+      }
+      setTimeout(tick, 42);
+    }
+  }
+  setTimeout(tick, 900);
+})();
+
+(function () {
+  const cards = document.querySelectorAll('.card');
+  if (!('IntersectionObserver' in window)) {
+    cards.forEach(c => c.classList.add('in'));
+    return;
+  }
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        const i = Array.from(cards).indexOf(entry.target);
+        entry.target.style.transitionDelay = (i % 3) * 90 + 'ms';
+        entry.target.classList.add('in');
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.18 });
+
+  cards.forEach(c => io.observe(c));
+})();
+</script>
+</body>
+</html>
